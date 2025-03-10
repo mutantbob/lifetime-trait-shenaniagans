@@ -1,0 +1,7 @@
+[package]
+name = "third"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+gst = { package = "gstreamer", version = "0.23.5" }
