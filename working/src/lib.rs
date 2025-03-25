@@ -20,7 +20,7 @@ pub struct H266MergersPadSettings {
 pub trait IndexSettings {
     type Target<'a>: DerefMut<Target = H266MergersPadSettings>
     where
-        Self: 'a;
+        Self: 'a; // where clauses on associated types are unstable until rust 1.65 and nonexistent before 1.61
     fn settings_at(&mut self, idx: usize) -> Option<Self::Target<'_>>;
 
     fn n_pads(&self) -> usize;
