@@ -40,6 +40,7 @@ help: the lifetime requirements from the `impl` do not correspond to the require
 ```
 
 The third fails with
+
 ```
 error: lifetime may not live long enough
   --> third/src/lib.rs:61:28
@@ -112,7 +113,10 @@ error: lifetime may not live long enough
 
 That hint about `where Self: 'a` turns out to be the solution.
 
+# working
+
 So the final trait is
+
 ```
 pub trait IndexSettings {
     type Target<'a>: DerefMut<Target = H266MergersPadSettings>
@@ -125,3 +129,23 @@ pub trait IndexSettings {
 ```
 
 This syntax involving where clauses in an associated type was unstable until Rust 1.65, and nonexistent before 1.61
+
+# solution that does not require an associated type
+
+This solution was provided by Morgane on discord and does not require an associated type.
+
+```
+pub trait IndexSettings<'a, T: DerefMut<Target = H266MergersPadSettings> + 'a> {
+    fn settings_at(&'a mut self, idx: usize) -> Option<T>;
+
+    fn n_pads(&self) -> usize;
+}
+```
+
+It does require a [HRTB](https://doc.rust-lang.org/nomicon/hrtb.html) on the declaration of `foo()`
+
+```
+pub fn foo<'a, T: DerefMut<Target = H266MergersPadSettings>>(
+    mut pads: impl for<'b> IndexSettings<'b, T>,
+) {
+```

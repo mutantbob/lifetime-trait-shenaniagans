@@ -1,6 +1,8 @@
 use std::ops::DerefMut;
 use std::sync::{Arc, Mutex, MutexGuard};
 
+// working solution from Morgane on discord
+
 pub struct H266MergersPad {
     settings: Arc<Mutex<H266MergersPadSettings>>,
 }
@@ -17,14 +19,14 @@ pub struct H266MergersPadSettings {
     pub demo_guts: String,
 }
 
-pub trait IndexSettings<T: DerefMut<Target = H266MergersPadSettings>> {
-    fn settings_at(&mut self, idx: usize) -> Option<T>;
+pub trait IndexSettings<'a, T: DerefMut<Target = H266MergersPadSettings> + 'a> {
+    fn settings_at(&'a mut self, idx: usize) -> Option<T>;
 
     fn n_pads(&self) -> usize;
 }
 
-impl IndexSettings<&mut H266MergersPadSettings> for &mut [H266MergersPadSettings] {
-    fn settings_at(&mut self, idx: usize) -> Option<&mut H266MergersPadSettings> {
+impl<'a> IndexSettings<'a, &'a mut H266MergersPadSettings> for &mut [H266MergersPadSettings] {
+    fn settings_at(&'a mut self, idx: usize) -> Option<&'a mut H266MergersPadSettings> {
         Some(&mut self[idx])
     }
 
@@ -33,8 +35,8 @@ impl IndexSettings<&mut H266MergersPadSettings> for &mut [H266MergersPadSettings
     }
 }
 
-impl IndexSettings<MutexGuard<H266MergersPadSettings>> for Vec<H266MergersPad> {
-    fn settings_at(&mut self, idx: usize) -> Option<MutexGuard<H266MergersPadSettings>> {
+impl<'a> IndexSettings<'a, MutexGuard<'a, H266MergersPadSettings>> for Vec<H266MergersPad> {
+    fn settings_at(&'a mut self, idx: usize) -> Option<MutexGuard<'a, H266MergersPadSettings>> {
         let pad: &H266MergersPad = &self[idx];
         if let Ok(settings) = pad.imp().settings.lock() {
             let s2: MutexGuard<'_, H266MergersPadSettings> = settings;
@@ -48,7 +50,9 @@ impl IndexSettings<MutexGuard<H266MergersPadSettings>> for Vec<H266MergersPad> {
     }
 }
 
-pub fn foo<'a, T: DerefMut<Target = H266MergersPadSettings>>(mut pads: impl IndexSettings<T>) {
+pub fn foo<'a, T: DerefMut<Target = H266MergersPadSettings>>(
+    mut pads: impl for<'b> IndexSettings<'b, T>,
+) {
     for i in 0..pads.n_pads() {
         let settings = pads.settings_at(i).unwrap();
         println!("{}", (*settings).demo_guts);
